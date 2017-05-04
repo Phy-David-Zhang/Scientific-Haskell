@@ -1,0 +1,10 @@
+ Time      Weight    Self Weight      Symbol Name
+6.26 s     100.0%        0 s         engine (18755)
+6.26 s     100.0%        0 s         Main Thread
+6.25 s      99.9%        0 s         start
+6.25 s      99.9%     325.00 ms      main
+5.26 s      84.1%     880.00 ms      estimate
+4.38 s      70.0%     675.00 ms      hamiltonian
+3.00 ms      0.0%       3.00 ms      central
+661.00 ms   10.5%       7.00 ms      printf
+1.00 ms      0.0%        0 s         _dyld_start

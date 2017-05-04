@@ -1,0 +1,16 @@
+$ python intfce.py
+
+         1399990 function calls in 8.526 seconds
+
+   Ordered by: standard name
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    8.525    8.525 <string>:1(<module>)
+   399996    3.578    0.000    3.752    0.000 engine.py:102(_genLaplace)
+    99999    0.126    0.000    0.126    0.000 engine.py:116(_genBoundary)
+        1    3.764    3.764    8.525    8.525 engine.py:124(solveEq)
+   399996    0.676    0.000    4.428    0.000 engine.py:133(<lambda>)
+    99999    0.208    0.000    0.208    0.000 {built-in method builtins.abs}
+        1    0.000    0.000    8.526    8.526 {built-in method builtins.exec}
+   399996    0.174    0.000    0.174    0.000 {built-in method numpy.core
+                                                   .multiarray.empty_like}
