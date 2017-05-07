@@ -1,6 +1,6 @@
 ## Schrodinger Equation Solver
 
-This program is a 1D universal Schrodinger equation solver implemented in pure C language. This program is to find out the limit of the compuatational efficiency for numerical Schrodinger equation solver.
+This program is a 1D universal Schrodinger equation solver implemented in pure C language. This program is to find out the limit of the computational efficiency for numerical Schrodinger equation solver.
 
 ```
 	Author: Zhang Chang-kai
@@ -15,4 +15,4 @@ Makefile is provided. Use `make` to automatically compile, execute and write dat
 
 ### Configuration
 
-Basic configurations lie in the front of the program and the main function. Settings as spacial and temporal step size, number of spacial and temporal steps are located in the beginning of the program using macro definition. The initial condition is set in the main function.
+Basic configurations lie in the front of the program and the main function. Settings as spatial and temporal step size, number of spatial and temporal steps are located at the beginning of the program using macro definition. The initial condition is set in the main function.
