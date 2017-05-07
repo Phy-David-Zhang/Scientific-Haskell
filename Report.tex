@@ -1,0 +1,393 @@
+%% ---------------------------------------------------
+%
+%    Efficiency and Lazy Evaluation of Runge-Kutta
+%	 Method in Solving Schrödinger Equation
+%    ======================================
+%
+%		Author: Zhang Chang-kai
+%		E-mail: phy.zhangck@gmail.com
+%		Copyright (C) 2017 Zhang Chang-kai
+%		License: CC BY-NC-SA 4.0
+%
+%% ---------------------------------------------------
+
+\documentclass[11pt]{article}
+
+% ---------------------------
+%       PAGE SETTINGS
+% ---------------------------
+
+\usepackage[top=2.54cm, bottom=2.54cm, left=2.75cm, right=2.75cm]{geometry}
+
+% ---------------------------
+%       MATH SETTINGS
+% ---------------------------
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathrsfs}
+\usepackage{mathtools}
+
+	\DeclareMathOperator{\expi}{\exp\mathrm{i}}
+	\DeclareMathAlphabet{\mathpzc}{OT1}{pzc}{m}{it}
+
+% ---------------------------
+%         HYPERLINKS
+% ---------------------------
+
+\usepackage[colorlinks, linkcolor=blue, citecolor=red, urlcolor=black]{hyperref}
+
+% ---------------------------
+%      FIGURE SETTINGS
+% ---------------------------
+
+\usepackage{graphicx}
+\usepackage{float}
+
+% ---------------------------
+%        MULTICOLUMNS
+% ---------------------------
+
+\usepackage{multicol}
+
+% ---------------------------
+%        BIBLIOGRAPHY
+% ---------------------------
+
+\usepackage{cite}
+
+% ---------------------------
+%          COLORS
+% ---------------------------
+
+\usepackage{color}
+
+% ---------------------------
+%           CODE
+% ---------------------------
+
+\usepackage{listings}
+\usepackage{xcolor}
+\lstset{
+basicstyle=\ttfamily\small, 
+keywordstyle= \color{ blue!70},commentstyle=\color{red!50!green!50!blue!50}, rulesepcolor= \color{ red!20!green!20!blue!20} } 
+
+% ---------------------------
+%         LICENSE
+% ---------------------------
+
+\usepackage{ccicons}
+
+% ---------------------------
+%        MULTICOLUMNS
+% ---------------------------
+
+% Sets the spacing between lines of text.
+\linespread{1.2} 
+%\setlength{\parindent}{0cm}  % Suppresses indentation of text at the start of a paragraph
+
+
+% ---------------------------
+%          DOCUMENT
+% ---------------------------
+
+\begin{document}
+
+% Begins the titlepage of the document
+\begin{titlepage}
+
+\begin{center}
+
+~
+
+\vspace{1.5cm}
+
+% ---------------------------
+%     TITLE AND AUTHOR
+% ---------------------------
+
+{\huge Efficiency and Lazy Evaluation in Solving Schrodinger\\[0.3cm] Equation by Runge-Kutta Method}\\[1.2cm] 
+% [1.2cm] sets the distance between this line and the next.
+
+\textit{\Large Zhang Chang-kai}\\[0.3cm] 
+% The '\\' starts a new paragraph, and will only work after a paragraph has started, unless we use '~'.
+
+School of Physics and Astronomy~\\
+
+University of Manchester~\\[0.3cm]
+
+Department of Physics~\\
+
+Beijing Normal University~\\[0.3cm]
+
+May 2017~\\[1cm]
+
+% ---------------------------
+%         COAUTHORS
+% ---------------------------
+ 
+\begin{minipage}{0.7\textwidth}
+This document is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License. \ccbyncsa
+\end{minipage}
+
+\end{center}
+
+\vspace{2cm}
+
+% ---------------------------
+%          ABSTRACT
+% ---------------------------
+
+{\Large \textbf{Abstract}}~\\
+
+\begin{center}
+\begin{minipage}{0.85\textwidth}
+
+This is a quick report on the performance of numerical Schrodinger equation solver written in Pure C, Haskell and Python. The programs are designed to produce the same functionality and then are used to solve the Schrodinger equation in exactly the same conditions, after which time profiling reveals the efficiency of the calculation. Moreover, the role of lazy evaluation is studied, and it is discovered that the lazy evaluation mechanism in Haskell dramatically improves the performance compared with the corresponding Python companion.
+\end{minipage}
+\end{center}
+
+\end{titlepage}
+
+% This stops the title page being numbered
+\pagenumbering{gobble}
+\clearpage
+% sets the style of page numbering for the report
+\pagenumbering{arabic} 
+% Starts the numbering at page 2 as typically the first page is not numbered
+\setcounter{page}{2}
+
+% Starts a new page to begin the report on.
+\newpage
+
+% ---------------------------
+%          MAIN BODY
+% ---------------------------
+
+\section{Introduction}
+
+This research concerns the efficiency investigation of the Schrodinger equation solver in Pure C, Haskell and Python. The programs are designed to solve the general Schrodinger equation using Runge-Kutta fourth-order method. The Schrodinger equation reads
+\begin{equation}
+	\mathrm{i}\frac{\partial}{\partial t}\psi = -\frac{\hbar^2}{2m}\nabla^2\psi + V\psi
+\end{equation}
+
+In order to simplify the program, only 1D Schrodinger equation is considered. Besides, the constants in the equation are taken as $\hbar = 1$, $m = 0.5$. Therefore, the equation becomes
+\begin{equation}
+	\mathrm{i}\frac{\partial}{\partial t}\psi = -\frac{\partial^2}{\partial x^2}\psi + V\psi
+\end{equation}
+
+To solve the equation numerically, rewrite the equation into discrete form
+\begin{equation}
+	\psi_{n+1} - \psi_n = -\mathrm{i}H(\psi_n) \Delta t
+\end{equation}
+The Hamiltonian operator is
+\begin{equation}
+	\left.\hat{H}\varphi\right|_{x_i} = -\frac{\varphi(x_{i-1}) + \varphi(x_{i+1}) - 2\varphi(x_i)}{\Delta x^2} + V(x_i)\varphi(x_i)
+\end{equation}
+
+The Runge-Kutta method suggests the Hamilton function $H(\psi_n)$ to be
+\begin{equation}
+	H(\psi_n) = \frac{1}{6}(k_1 + 2k_2 + 2k_3 + k_4)
+\end{equation}
+where
+\begin{equation}
+	\begin{split}
+		k_1 &= \hat{H}\psi_n\\
+		k_2 &= \hat{H}(\psi_n + \frac{h}{2}k_1)\\
+		k_3 &= \hat{H}(\psi_n + \frac{h}{2}k_2)\\
+		k_4 &= \hat{H}(\psi_n + hk_3)
+	\end{split}
+\end{equation}
+
+This is the basic principle of the calculation. This method is explicit and thus will face a convergence problem. The error of the integration will accumulate and the convergence strongly relies on the ratio
+\begin{equation}
+	r = \frac{\Delta t}{\Delta x^2}
+\end{equation}
+being sufficiently small.
+
+In this research, the above algorithm is faithfully implemented in Pure C, Haskell and Python. The Pure C implementation will provide an estimation on the efficiency limit of the calculation. And the Python implementation (accelerated by numpy) is the most popular way of scientific calculation. The Haskell implementation, however, is a major role of this research. It is invoked for an analysis on how much acceleration the lazy evaluation can bring about. 
+
+All source codes mentioned in this report can be accessed through Github. 
+
+\section{Efficiency Analysis}
+
+The programs are required to produce the following functionality
+
+Solve the equation under
+\vspace{-5pt}
+\begin{itemize}
+	\setlength\itemsep{-3pt}
+	\item any given initial state
+	\item certain boundary condition
+	\item any time-independent potential field
+\end{itemize}
+\vspace{-5pt}
+as well as output designated data for animation.
+
+\vspace{5pt}
+
+The efficiency analysis is performed under the following conditions
+\begin{itemize}
+  \setlength\itemsep{-3pt}
+  \item Initial condition:
+    \begin{equation}
+      \psi(x,0) = \exp\{-\frac{(x - 0.5)^2}{0.01}\}
+    \end{equation}
+  \item Boundary Condition:
+  	\begin{equation}
+      \psi(0,t) = \psi(1,t) = 0
+    \end{equation}
+  \item Potential:
+    \begin{equation}
+      V = 0
+    \end{equation}
+\end{itemize}
+\begin{multicols}{2}
+\begin{itemize}
+  \setlength\itemsep{-3pt}
+  \item Temporal step size: \lstinline{4e-6}
+  \item Spacial step size: \lstinline{0.02}
+  \item Temporal range: \lstinline{(0, 0.4)}
+  \item Number of recursion: \lstinline{100,000}
+  \item Number of space steps: \lstinline{50}
+  \item Spacial range: \lstinline{(0.0, 1.0)}
+\end{itemize}
+\end{multicols}
+
+All the efficiency tests are taken under a 2016 MacBook running macOS Sierra 10.12.4 with $1.1\,\mathrm{GHz}$ Intel Core m3 dual-core processor.
+
+%\vspace{10pt}
+
+The Pure C version program is compiled using GCC 6.3.0 and executed under Xcode Instrument to produce time profiling report. The summary of the report is shown in the following.
+
+\begin{table}[H]
+\setlength\abovecaptionskip{0pt}
+\begin{lstlisting}
+	 Time      Weight    Self Weight      Symbol Name
+	6.26 s     100.0%        0 s         engine (18755)
+	6.26 s     100.0%        0 s         Main Thread
+	6.25 s      99.9%        0 s         start
+	6.25 s      99.9%     325.00 ms      main
+	5.26 s      84.1%     880.00 ms      estimate
+	4.38 s      70.0%     675.00 ms      hamiltonian
+	3.00 ms      0.0%       3.00 ms      central
+	661.00 ms   10.5%       7.00 ms      printf
+	1.00 ms      0.0%        0 s         _dyld_start
+\end{lstlisting}
+\caption{Time Profiling Report by Xcode Instrument}
+\end{table}
+
+It can be seen that the total execution time is $6.26\,\mathrm{s}$ and the major calculation \lstinline{estimate} takes up most of the resources.
+
+\newpage 
+
+The Haskell version program is compiled using GHC 8.0.1 and the time profiling report is provided by GHC runtime system.
+\vspace{-10pt}
+\begin{table}[H]
+\setlength\abovecaptionskip{0pt}
+\begin{lstlisting}
+Prelude> :! Generator +RTS -sstderr
+  17,329,933,192 bytes allocated in the heap
+     721,864,416 bytes copied during GC
+       1,085,104 bytes maximum residency (551 sample(s))
+         115,768 bytes maximum slop
+               4 MB total memory in use (0 MB lost due to fragmentation)
+
+                             Tot time (elapsed)  Avg pause  Max pause
+  Gen  0  32654 colls,  0 par  1.003s   1.038s     0.0000s    0.0008s
+  Gen  1    551 colls,  0 par  0.300s   0.303s     0.0006s    0.0016s
+
+  INIT    time    0.000s  (  0.004s elapsed)
+  MUT     time    6.302s  (  6.403s elapsed)
+  GC      time    1.303s  (  1.342s elapsed)
+  EXIT    time    0.000s  (  0.000s elapsed)
+  Total   time    7.608s  (  7.748s elapsed)
+
+  %GC     time      17.1%  (17.3% elapsed)
+
+  Alloc rate    2,749,920,967 bytes per MUT second
+  Productivity  82.9% of total user, 81.4% of total elapsed
+\end{lstlisting}
+\caption{Time Profiling Report by GHC RTS}
+\end{table}
+
+The Python program is interpreted by standard Python 3.6.0 and the time profiling report is provided by cPython module.
+
+\begin{table}[H]
+\setlength\abovecaptionskip{0pt}
+\begin{lstlisting}
+$ python intfce.py
+
+      2599978 function calls in 15.536 seconds
+
+ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+     1    0.000    0.000   15.536   15.536 <string>:1(<module>)
+799992    0.926    0.000    8.073    0.000 engine_ori.py:105(<lambda>)
+799992    6.804    0.000    7.146    0.000 engine_ori.py:74(_genLaplace)  99999    0.127    0.000    0.127    0.000 engine_ori.py:88(_genBoundary)
+     1    7.129    7.129   15.536   15.536 engine_ori.py:96(solveEq)
+ 99999    0.207    0.000    0.207    0.000 {built-in method builtins.abs}
+     1    0.000    0.000   15.536   15.536 {built-in method builtins.exec}
+799992    0.343    0.000    0.343    0.000 {built-in method numpy.core
+                                                .multiarray.empty_like}
+\end{lstlisting}
+\caption{Time Profiling Report by cPython}
+\end{table}
+
+It is seen from the report that Haskell doubles the efficiency compared with Python. Moreover, it reaches more than $80\%$ of the efficiency of Pure C. Therefore, the Haskell version program can be competitive especially when the required evolution time is massive.
+
+Also, compared with Pure C, the Haskell program provides more readability and extendability. Thus, it is easier to maintain and modify.
+
+\section{Lazy Evaluation}
+
+One of the major factors for the great efficiency of Haskell version program is its lazy evaluation mechanism. The basic principle for the lazy evaluation is to put the actual evaluation as later as possible. What a Haskell program stores are not the actual data, but instead the \emph{ways} to calculate the data. 
+
+As an example, suppose there is a \lstinline{double} function which doubles all the elements in a list. An imperative language, e.g. Python, will have implementation as
+
+\begin{lstlisting}
+	double = lambda xs: [2*x for x in xs]
+\end{lstlisting}
+
+And in a functional language, e.g. Haskell, it is
+
+\begin{lstlisting}
+	double xs = [2*x | x <- xs]
+\end{lstlisting}
+
+There are no differences in behaviour if these two functions are called only once. However, if there are any composition of the functions, the lazy evaluation will show its advantage. To see this difference, analyse the behaviour of the following expression
+
+\begin{lstlisting}
+	double(double(lst))  # for Python
+	double double lst   -- for Haskell
+\end{lstlisting}
+
+The Python code will simply traverse the list \lstinline{lst}, return the new list, pass this new list to the second \lstinline{double} and traverse again. Thus, the Python will traverse the list twice in this case.
+
+However, Haskell will do differently. The first \lstinline{double} will actually do nothing but store that this is a list with each element is twice of the previous list, like
+
+\begin{lstlisting}
+	[x1*2, x2*2, ... xn*2]
+\end{lstlisting}
+
+And for the second \lstinline{double} will do the same. Therefore, the result of the function will be
+
+\begin{lstlisting}
+	[x1*2*2, x2*2*2, ... xn*2*2]
+\end{lstlisting}
+
+This formulation will remain until it is required to produce output. That the evaluation will not be performed until it is required is the so-called \textbf{lazy evaluation}. This scheme will reduce the traversal from twice into once. And it will reduce more when there are more function compositions.
+
+In Runge-Kutta fourth-order method, the Python program needs to traverse the list five times (to compute $k_1$, $k_2$, $k_3$, $k_4$ and $\psi_{n+1}$). But with Haskell, it is supposed to reduce the traversal into once, which will significantly improve the efficiency.
+
+Despite the great advantage shown above, the lazy evaluation will not be always better. Overuse of lazy evaluation may result in a massive waste of memory and a considerable garbage collection costs. Therefore, appropriate strictness should be added during the design of the program.
+
+In the Haskell Schrodinger equation solver, the strictness is added at the \lstinline{solve} function. The \lstinline{solve} function is going to recurse 100,000 times and could result in nearly half of the execution time spending in garbage collection.
+
+\section{Conclusions and Remarks}
+
+From this research, it is discovered that the lazy evaluation scheme has the potential to produce a much higher calculation efficiency compared with the ordinary eager evaluation program. In solving the Schrodinger equation using Runge-Kutta fourth order method, the Haskell program with lazy evaluation reduces more than half of the computational time compared with the contemporary Python program. 
+
+Therefore, it is suggested that serious consideration should be made to introduce Haskell or lazy evaluation scheme into scientific computation, especially for those algorithms which require massive list manipulation.
+
+\end{document}
+
+% End of File Report.tex
